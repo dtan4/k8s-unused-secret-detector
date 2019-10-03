@@ -165,6 +165,6 @@ func main() {
 	}
 
 	for _, secret := range unused {
-		fmt.Printf("%s\t%s\t%s\n", secret.Namespace, secret.Name, secret.Type)
+		fmt.Println(secret.Name)
 	}
 }
