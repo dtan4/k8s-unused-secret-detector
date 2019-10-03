@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	flag "github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -11,14 +12,21 @@ import (
 )
 
 func main() {
+	var context, namespace string
+
+	flag.StringVar(&context, "context", "", "kubeconfig context")
+	flag.StringVarP(&namespace, "namespace", "n", "default", "namespace")
+
+	flag.Parse()
+
+	fmt.Printf("context:   %s\n", context)
+	fmt.Printf("namespace: %s\n", namespace)
+
 	kubeconfig := clientcmd.RecommendedHomeFile
-	// context := ""
-	namespace := "default"
 
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
-		// &clientcmd.ConfigOverrides{CurrentContext: context},
-		&clientcmd.ConfigOverrides{},
+		&clientcmd.ConfigOverrides{CurrentContext: context},
 	)
 
 	config, err := clientConfig.ClientConfig()
