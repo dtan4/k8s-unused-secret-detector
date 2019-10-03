@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/pkg/errors"
 	flag "github.com/spf13/pflag"
@@ -121,9 +122,6 @@ func main() {
 
 	flag.Parse()
 
-	fmt.Printf("context:   %s\n", kubecontext)
-	fmt.Printf("namespace: %s\n", namespace)
-
 	kubeconfig := clientcmd.RecommendedHomeFile
 
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
@@ -145,15 +143,21 @@ func main() {
 		client: client,
 	}
 
+	log.Printf("Retrieving Pods in %s...", namespace)
+
 	pods, err := k8sClient.ListPods(namespace)
 	if err != nil {
 		panic(err)
 	}
 
+	log.Printf("Retrieving Secrets in %s...", namespace)
+
 	secrets, err := k8sClient.ListSecrets(namespace)
 	if err != nil {
 		panic(err)
 	}
+
+	log.Printf("Detecting unused Secrets in %s...", namespace)
 
 	unused, err := detectUnusedSecrets(pods, secrets)
 	if err != nil {
