@@ -25,3 +25,7 @@ k8s-unused-secret-detector -n awesome | kubectl delete secret -n awesome
 ## Author
 
 Daisuke Fujita ([@dtan4](https://github.com/dtan4/))
+
+## License
+
+MIT
