@@ -4,7 +4,7 @@ Detect unused Kubernetes Secrets
 
 ## Build
 
-```
+```bash
 git clone git@github.com:dtan4/k8s-unused-secret-detector.git
 cd k8s-unused-secret-detector
 make
