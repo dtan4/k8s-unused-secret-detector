@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	flag "github.com/spf13/pflag"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +14,42 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/pager"
 )
+
+type k8sClient struct {
+	client kubernetes.Interface
+}
+
+func (c *k8sClient) ListSecrets(namespace string) ([]*v1.Secret, error) {
+	p := pager.New(pager.SimplePageFunc(func(opts metav1.ListOptions) (runtime.Object, error) {
+		list, err := c.client.CoreV1().Secrets(namespace).List(opts)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot retrieve secrets")
+		}
+
+		return list, nil
+	}))
+	p.PageSize = 500
+
+	ctx := context.Background()
+
+	secrets := []*v1.Secret{}
+
+	err := p.EachListItem(ctx, metav1.ListOptions{}, func(obj runtime.Object) error {
+		secret, ok := obj.(*v1.Secret)
+		if !ok {
+			return errors.Errorf("this is not a secret: %#v", obj)
+		}
+
+		secrets = append(secrets, secret)
+
+		return nil
+	})
+	if err != nil {
+		return []*v1.Secret{}, errors.Wrap(err, "cannot iterate secrets")
+	}
+
+	return secrets, nil
+}
 
 func main() {
 	var kubecontext, namespace string
@@ -42,30 +79,11 @@ func main() {
 		panic(err)
 	}
 
-	p := pager.New(pager.SimplePageFunc(func(opts metav1.ListOptions) (runtime.Object, error) {
-		list, err := client.CoreV1().Secrets(namespace).List(opts)
-		if err != nil {
-			return nil, err
-		}
+	k8sClient := &k8sClient{
+		client: client,
+	}
 
-		return list, err
-	}))
-	p.PageSize = 500
-
-	ctx := context.Background()
-
-	secrets := []*v1.Secret{}
-
-	err = p.EachListItem(ctx, metav1.ListOptions{}, func(obj runtime.Object) error {
-		secret, ok := obj.(*v1.Secret)
-		if !ok {
-			return err
-		}
-
-		secrets = append(secrets, secret)
-
-		return nil
-	})
+	secrets, err := k8sClient.ListSecrets(namespace)
 	if err != nil {
 		panic(err)
 	}
