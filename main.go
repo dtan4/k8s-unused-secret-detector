@@ -67,7 +67,9 @@ func (c *k8sClient) ListSecrets(namespace string) ([]*v1.Secret, error) {
 
 	secrets := []*v1.Secret{}
 
-	err := p.EachListItem(ctx, metav1.ListOptions{}, func(obj runtime.Object) error {
+	err := p.EachListItem(ctx, metav1.ListOptions{
+		FieldSelector: "type=Opaque",
+	}, func(obj runtime.Object) error {
 		secret, ok := obj.(*v1.Secret)
 		if !ok {
 			return errors.Errorf("this is not a secret: %#v", obj)
@@ -120,10 +122,6 @@ func detectUnusedSecrets(pods []*v1.Pod, secrets []*v1.Secret) ([]*v1.Secret, er
 	unused := []*v1.Secret{}
 
 	for _, secret := range secrets {
-		if secret.Type != v1.SecretTypeOpaque {
-			continue
-		}
-
 		if !usedSecretNames[secret.Name] {
 			unused = append(unused, secret)
 		}
