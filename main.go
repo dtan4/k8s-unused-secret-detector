@@ -106,6 +106,14 @@ func detectUnusedSecrets(pods []*v1.Pod, secrets []*v1.Secret) ([]*v1.Secret, er
 			if volume.Secret != nil {
 				usedSecretNames[volume.Secret.SecretName] = true
 			}
+
+			if volume.Projected != nil {
+				for _, source := range volume.Projected.Sources {
+					if source.Secret != nil {
+						usedSecretNames[source.Secret.Name] = true
+					}
+				}
+			}
 		}
 	}
 
