@@ -89,12 +89,22 @@ func detectUnusedSecrets(pods []*v1.Pod, secrets []*v1.Secret) ([]*v1.Secret, er
 
 	for _, pod := range pods {
 		for _, container := range pod.Spec.Containers {
-			for _, env := range container.Env {
-				if env.ValueFrom == nil || env.ValueFrom.SecretKeyRef == nil {
-					continue
+			for _, envFrom := range container.EnvFrom {
+				if envFrom.SecretRef != nil {
+					usedSecretNames[envFrom.SecretRef.Name] = true
 				}
+			}
 
-				usedSecretNames[env.ValueFrom.SecretKeyRef.Name] = true
+			for _, env := range container.Env {
+				if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil {
+					usedSecretNames[env.ValueFrom.SecretKeyRef.Name] = true
+				}
+			}
+		}
+
+		for _, volume := range pod.Spec.Volumes {
+			if volume.Secret != nil {
+				usedSecretNames[volume.Secret.SecretName] = true
 			}
 		}
 	}
