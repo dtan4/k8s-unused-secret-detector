@@ -83,6 +83,36 @@ func (c *k8sClient) ListSecrets(namespace string) ([]*v1.Secret, error) {
 	return secrets, nil
 }
 
+func detectUnusedSecrets(pods []*v1.Pod, secrets []*v1.Secret) ([]*v1.Secret, error) {
+	usedSecretNames := map[string]bool{}
+
+	for _, pod := range pods {
+		for _, container := range pod.Spec.Containers {
+			for _, env := range container.Env {
+				if env.ValueFrom == nil || env.ValueFrom.SecretKeyRef == nil {
+					continue
+				}
+
+				usedSecretNames[env.ValueFrom.SecretKeyRef.Name] = true
+			}
+		}
+	}
+
+	unused := []*v1.Secret{}
+
+	for _, secret := range secrets {
+		if secret.Type != v1.SecretTypeOpaque {
+			continue
+		}
+
+		if !usedSecretNames[secret.Name] {
+			unused = append(unused, secret)
+		}
+	}
+
+	return unused, nil
+}
+
 func main() {
 	var kubecontext, namespace string
 
@@ -115,21 +145,22 @@ func main() {
 		client: client,
 	}
 
-	secrets, err := k8sClient.ListSecrets(namespace)
-	if err != nil {
-		panic(err)
-	}
-
-	for _, secret := range secrets {
-		fmt.Printf("%s\t%s\t%s\n", secret.Namespace, secret.Name, secret.Type)
-	}
-
 	pods, err := k8sClient.ListPods(namespace)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, pod := range pods {
-		fmt.Printf("%s\t%s\n", pod.Namespace, pod.Name)
+	secrets, err := k8sClient.ListSecrets(namespace)
+	if err != nil {
+		panic(err)
+	}
+
+	unused, err := detectUnusedSecrets(pods, secrets)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, secret := range unused {
+		fmt.Printf("%s\t%s\t%s\n", secret.Namespace, secret.Name, secret.Type)
 	}
 }
