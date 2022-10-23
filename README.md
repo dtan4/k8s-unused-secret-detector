@@ -1,3 +1,7 @@
+This tool is no longer maintained.
+
+Similar project: [micnncim/kubectl-reap](https://github.com/micnncim/kubectl-reap)
+
 # k8s-unused-secret-detector
 
 Detect unused Kubernetes Secrets
